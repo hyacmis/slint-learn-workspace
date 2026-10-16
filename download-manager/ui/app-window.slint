@@ -1,50 +1,77 @@
-import { Button } from "std-widgets.slint";
+import { Button, ListView } from "std-widgets.slint";
+
+// 列表里每一行。Rust 侧的 Vec<DownloadTask> 会被映射成这个结构。
+export struct DownloadItem {
+    name: string,
+    progress: string,
+    status: string,
+    action: string,
+    can-act: bool,
+}
 
 export component AppWindow inherits Window {
     title: "Download Manager";
-    preferred-width: 900px;
-    preferred-height: 560px;
+    preferred-width: 640px;
+    preferred-height: 600px;
 
-    in property <string> file-name;
-    in property <string> progress-text;
-    in property <string> status-text;
+    // Vec<DownloadTask> -> VecModel<DownloadItem> -> ModelRc -> 这个属性
+    in property <[DownloadItem]> downloads;
 
-    callback start-clicked();
-    callback pause-clicked();
-    callback resume-clicked();
+    // 点某一行里的按钮；参数是该行下标，Rust 用它定位任务
+    callback task-clicked(int);
 
-    VerticalLayout {
+    ListView {
+        for item[index] in downloads: Rectangle {
+            height: 64px;
+            border-width: 1px;
+            border-color: #c9c9c9;
 
-        Text {
-            text: file-name;
-        }
+            HorizontalLayout {
+                // 关键：cross-axis-alignment 默认是 stretch —— 子项会被撑满行高，
+                // 文字因此顶对齐。center 让每个子项按自身高度在行内垂直居中，
+                // 文字和按钮一起居中，按钮也不用再靠 height: 80% 去压。
+                cross-axis-alignment: center;
 
-        Text {
-            text: progress-text;
-        }
+                padding: 10px;
+                spacing: 8px;
 
-        Text {
-            text: status-text;
-        }
+                // 文件名：占满剩余宽度，超长省略。
+                // overflow: elide 会把 Text 的 min-width 从"整段文字宽度"降到 0，
+                // 因此文件名再长也只是自己变成省略号，不会把右边的进度/状态挤走。
+                Text {
+                    text: item.name;
+                    font-size: 18px;
+                    horizontal-stretch: 1;
+                    overflow: elide;
+                }
 
-        Button {
-            text: "Start";
-            clicked => {
-                start-clicked();
-            }
-        }
+                // 进度：固定宽度。位置不受文件名影响，宽度也不随 0%→100% 的字宽变化。
+                Text {
+                    min-width: 80px;
+                    max-width: 80px;
+                    text: item.progress;
+                    font-size: 26px;
+                    font-weight: 700;
+                }
 
-        Button {
-            text: "Pause";
-            clicked => {
-                pause-clicked();
-            }
-        }
+                // 状态：同样固定宽度，避免 Downloading/Paused 字宽不同让按钮左右跳。
+                Text {
+                    min-width: 100px;
+                    max-width: 100px;
+                    text: item.status;
+                    font-size: 14px;
+                    color: #666666;
+                }
 
-        Button {
-            text: "Resume";
-            clicked => {
-                resume-clicked();
+                Button {
+                    min-width: 86px;
+                    max-width: 86px;
+                    text: item.action;
+                    visible: item.can-act;
+                    clicked => {
+                        task-clicked(index);
+                    }
+                }
             }
         }
     }
