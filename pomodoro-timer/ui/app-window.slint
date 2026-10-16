@@ -1,0 +1,63 @@
+import { Button } from "std-widgets.slint";
+
+export component AppWindow inherits Window {
+    title: "Pomodoro Timer";
+    preferred-width: 400px;
+    preferred-height: 500px;
+
+    in property <string> time-text: "25:00";
+    in property <string> mode-text: "Work";
+    in property <string> status: "Idle";
+
+    callback start-clicked();
+    callback pause-clicked();
+    callback reset-clicked();
+
+    VerticalLayout {
+
+        alignment: center;
+        spacing: 20px;
+
+        Text {
+            text: "🍅 Pomodoro Timer";
+            font-size: 28px;
+            horizontal-alignment: center;
+        }
+
+        Text {
+            text: mode-text;
+            font-size: 22px;
+            horizontal-alignment: center;
+        }
+
+        Text {
+            text: time-text;
+            font-size: 50px;
+            horizontal-alignment: center;
+        }
+
+        HorizontalLayout {
+            spacing: 10px;
+            Button {
+                text: "start";
+                clicked => { start-clicked() }
+            }
+
+            Button {
+                text: "pause";
+                clicked => { pause-clicked() }
+            }
+
+            Button {
+                text: "reset";
+                clicked => { reset-clicked() }
+            }
+        }
+
+        Text {
+            text: "Current: " + status;
+            font-size: 24px;
+            horizontal-alignment: center;
+        }
+    }
+}

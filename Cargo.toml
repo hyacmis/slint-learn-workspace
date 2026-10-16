@@ -1,0 +1,5 @@
+
+[workspace]
+members = ["pomodoro-timer"]
+
+resolver = "2"
