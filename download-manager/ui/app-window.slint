@@ -1,0 +1,51 @@
+import { Button } from "std-widgets.slint";
+
+export component AppWindow inherits Window {
+    title: "Download Manager";
+    preferred-width: 900px;
+    preferred-height: 560px;
+
+    in property <string> file-name;
+    in property <string> progress-text;
+    in property <string> status-text;
+
+    callback start-clicked();
+    callback pause-clicked();
+    callback resume-clicked();
+
+    VerticalLayout {
+
+        Text {
+            text: file-name;
+        }
+
+        Text {
+            text: progress-text;
+        }
+
+        Text {
+            text: status-text;
+        }
+
+        Button {
+            text: "Start";
+            clicked => {
+                start-clicked();
+            }
+        }
+
+        Button {
+            text: "Pause";
+            clicked => {
+                pause-clicked();
+            }
+        }
+
+        Button {
+            text: "Resume";
+            clicked => {
+                resume-clicked();
+            }
+        }
+    }
+}

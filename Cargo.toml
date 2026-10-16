@@ -1,5 +1,7 @@
-
 [workspace]
-members = ["pomodoro-timer"]
+members = [
+    "pomodoro-timer",
+    "download-manager",
+]
 
 resolver = "2"
