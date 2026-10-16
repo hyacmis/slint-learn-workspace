@@ -1,9 +1,10 @@
-import { Button, ListView } from "std-widgets.slint";
+import { Button, LineEdit, ListView } from "std-widgets.slint";
 
 // 列表里每一行。Rust 侧的 Vec<DownloadTask> 会被映射成这个结构。
 export struct DownloadItem {
     name: string,
-    progress: string,
+    size: string,
+    speed: string,
     status: string,
     action: string,
     can-act: bool,
@@ -11,68 +12,127 @@ export struct DownloadItem {
 
 export component AppWindow inherits Window {
     title: "Download Manager";
-    preferred-width: 640px;
-    preferred-height: 600px;
+    preferred-width: 860px;
+    preferred-height: 620px;
 
     // Vec<DownloadTask> -> VecModel<DownloadItem> -> ModelRc -> 这个属性
     in property <[DownloadItem]> downloads;
 
+    // 新增下载的输入框内容（双向绑定给 LineEdit）
+    in-out property <string> url-text;
+
+    // 底部提示条：添加结果 / 失败原因
+    in property <string> message;
+
+    // 点「添加下载」或输入框回车；参数是 URL
+    callback add-clicked(string);
+
     // 点某一行里的按钮；参数是该行下标，Rust 用它定位任务
     callback task-clicked(int);
 
-    ListView {
-        for item[index] in downloads: Rectangle {
-            height: 64px;
-            border-width: 1px;
-            border-color: #c9c9c9;
+    VerticalLayout {
+        padding: 12px;
+        spacing: 8px;
 
-            HorizontalLayout {
-                // 关键：cross-axis-alignment 默认是 stretch —— 子项会被撑满行高，
-                // 文字因此顶对齐。center 让每个子项按自身高度在行内垂直居中，
-                // 文字和按钮一起居中，按钮也不用再靠 height: 80% 去压。
-                cross-axis-alignment: center;
+        // ── 新增下载 ────────────────────────────────────────────
+        HorizontalLayout {
+            spacing: 8px;
+            cross-axis-alignment: center;
 
-                padding: 10px;
-                spacing: 8px;
+            LineEdit {
+                horizontal-stretch: 1;
+                placeholder-text: "输入 http(s) 下载地址，例如 http://example.com/file.zip";
+                text <=> url-text;
 
-                // 文件名：占满剩余宽度，超长省略。
-                // overflow: elide 会把 Text 的 min-width 从"整段文字宽度"降到 0，
-                // 因此文件名再长也只是自己变成省略号，不会把右边的进度/状态挤走。
-                Text {
-                    text: item.name;
-                    font-size: 18px;
-                    horizontal-stretch: 1;
-                    overflow: elide;
+                accepted(text) => {
+                    add-clicked(text);
                 }
+            }
 
-                // 进度：固定宽度。位置不受文件名影响，宽度也不随 0%→100% 的字宽变化。
-                Text {
-                    min-width: 80px;
-                    max-width: 80px;
-                    text: item.progress;
-                    font-size: 26px;
-                    font-weight: 700;
+            Button {
+                min-width: 96px;
+                max-width: 96px;
+                text: "添加下载";
+                clicked => {
+                    add-clicked(url-text);
                 }
+            }
+        }
 
-                // 状态：同样固定宽度，避免 Downloading/Paused 字宽不同让按钮左右跳。
-                Text {
-                    min-width: 100px;
-                    max-width: 100px;
-                    text: item.status;
-                    font-size: 14px;
-                    color: #666666;
-                }
+        // ── 下载列表 ────────────────────────────────────────────
+        ListView {
+            vertical-stretch: 1;
 
-                Button {
-                    min-width: 86px;
-                    max-width: 86px;
-                    text: item.action;
-                    visible: item.can-act;
-                    clicked => {
-                        task-clicked(index);
+            for item[index] in downloads : Rectangle {
+                height: 64px;
+                border-width: 1px;
+                border-color: #c9c9c9;
+
+                HorizontalLayout {
+                    // 关键：cross-axis-alignment 默认是 stretch —— 子项会被撑满行高，
+                    // 文字因此顶对齐。center 让每个子项按自身高度在行内垂直居中，
+                    // 文字和按钮一起居中，按钮也不用再靠 height: 80% 去压。
+                    cross-axis-alignment: center;
+
+                    padding: 10px;
+                    spacing: 8px;
+
+                    // 文件名：占满剩余宽度，超长省略。
+                    // overflow: elide 会把 Text 的 min-width 从"整段文字宽度"降到 0，
+                    // 因此文件名再长也只是自己变成省略号，不会把右边的大小/速度/状态挤走。
+                    Text {
+                        text: item.name;
+                        font-size: 18px;
+                        horizontal-stretch: 1;
+                        overflow: elide;
+                    }
+
+                    // 大小：已下载 / 总大小。固定宽度，避免数字位数变化时左右跳。
+                    Text {
+                        min-width: 165px;
+                        max-width: 165px;
+                        text: item.size;
+                        font-size: 15px;
+                        color: #333333;
+                    }
+
+                    // 速度：同样固定宽度，避免 0 B/s → 10.0 MB/s 的位数变化让后面的列左右跳。
+                    Text {
+                        min-width: 100px;
+                        max-width: 100px;
+                        text: item.speed;
+                        font-size: 15px;
+                        color: #333333;
+                    }
+
+                    // 状态：同样固定宽度，避免 Downloading/Paused 字宽不同让按钮左右跳。
+                    Text {
+                        min-width: 100px;
+                        max-width: 100px;
+                        text: item.status;
+                        font-size: 14px;
+                        color: #666666;
+                    }
+
+                    Button {
+                        min-width: 86px;
+                        max-width: 86px;
+                        text: item.action;
+                        visible: item.can-act;
+                        clicked => {
+                            task-clicked(index);
+                        }
                     }
                 }
             }
+        }
+
+        // ── 提示条 ──────────────────────────────────────────────
+        Text {
+            text: message;
+            font-size: 13px;
+            color: #666666;
+            overflow: elide;
         }
     }
 }

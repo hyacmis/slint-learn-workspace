@@ -5,6 +5,13 @@ edition = "2024"
 
 [dependencies]
 slint = "1.18.1"
+# ureq 默认的 rustls 后端会拉入 ring，需要 MSVC 现场编译 C 代码
+# （部分环境下 cl.exe 会报 D8050 导致构建失败）。这里改用 native-tls：
+# Windows 走 SChannel，整个依赖树变成纯 Rust，且使用系统证书库。
+#
+# 注意：ureq 不会默认选中 native-tls，必须在 agent 上显式配置 provider
+# （见 src/download.rs 的 agent()）。若要换回 rustls，这两处要一起改。
+ureq = { version = "3.3", default-features = false, features = ["native-tls", "gzip"] }
 
 [build-dependencies]
 slint-build = "1.18.1"
