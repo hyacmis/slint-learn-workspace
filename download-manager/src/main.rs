@@ -40,10 +40,27 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         move || {
             let mut failure = None;
+            let mut notice = None;
 
             {
                 let mut tasks = tasks.borrow_mut();
+                // 先快照所有任务的路径：应用服务器建议的文件名时要和别的任务去重
+                let taken: Vec<PathBuf> = tasks.iter().map(|task| task.path.clone()).collect();
+
                 for (index, task) in tasks.iter_mut().enumerate() {
+                    // 后台探测到的 Content-Disposition 文件名到了就改名
+                    let suggested = task.progress.take_suggested_name();
+                    if suggested.is_some_and(|name| task.apply_suggested_name(&name, &taken, index))
+                    {
+                        items.set_row_data(index, task.to_item());
+                    }
+
+                    // 后台留下的提示（比如"服务器不支持断点续传"）优先展示，
+                    // 免得用户以为 Resume 从头下是程序的问题
+                    if let Some(text) = task.progress.take_notice() {
+                        notice = Some(format!("{}：{text}", task.name));
+                    }
+
                     if task.poll() {
                         items.set_row_data(index, task.to_item());
 
@@ -58,7 +75,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
             }
 
-            if let Some(message) = failure
+            let message = failure.or(notice);
+
+            if let Some(message) = message
                 && let Some(ui) = ui_weak.upgrade()
             {
                 ui.set_message(message.into());
@@ -85,9 +104,17 @@ fn main() -> Result<(), Box<dyn Error>> {
                 return;
             }
 
-            let path = unique_path(&dir, &download::file_name_from_url(&url), &tasks.borrow());
-            let task = DownloadTask::new(url, path);
+            let taken: Vec<PathBuf> = tasks
+                .borrow()
+                .iter()
+                .map(|task| task.path.clone())
+                .collect();
+            let path = unique_path(&dir, &download::file_name_from_url(&url), &taken);
+            let task = DownloadTask::new(url.clone(), path);
             let name = task.name.clone();
+
+            // 后台问服务器真实文件名（Content-Disposition），不阻塞 UI
+            download::probe_name(url, task.progress.clone());
 
             items.push(task.to_item());
             tasks.borrow_mut().push(task);
@@ -270,6 +297,45 @@ impl DownloadTask {
         };
     }
 
+    /// 服务器通过 Content-Disposition 建议的文件名到了。
+    ///
+    /// 只在任务还没开始过（Waiting）时才改名：一旦开始下载，文件可能已经
+    /// 按旧名字建出来了，再改会让续传找不到文件。
+    fn apply_suggested_name(
+        &mut self,
+        suggested: &str,
+        taken: &[PathBuf],
+        self_index: usize,
+    ) -> bool {
+        if self.status != DownloadStatus::Waiting {
+            return false;
+        }
+
+        let dir = self
+            .path
+            .parent()
+            .map(Path::to_path_buf)
+            .unwrap_or_default();
+        let others: Vec<PathBuf> = taken
+            .iter()
+            .enumerate()
+            .filter(|(index, _)| *index != self_index)
+            .map(|(_, path)| path.clone())
+            .collect();
+
+        let path = unique_path(&dir, &download::sanitize_file_name(suggested), &others);
+        if path == self.path {
+            return false;
+        }
+
+        self.name = path
+            .file_name()
+            .map(|name| name.to_string_lossy().into_owned())
+            .unwrap_or_else(|| "download.bin".to_string());
+        self.path = path;
+        true
+    }
+
     /// 大小列："已下载 / 总大小"。
     fn size_text(&self) -> String {
         download::format_progress(self.progress.down_size(), self.progress.total_size())
@@ -335,7 +401,7 @@ fn downloads_dir() -> Result<PathBuf, Box<dyn Error>> {
 }
 
 /// 重名的任务不能写同一个文件，冲突时加 -1 / -2 后缀。
-fn unique_path(dir: &Path, name: &str, tasks: &[DownloadTask]) -> PathBuf {
+fn unique_path(dir: &Path, name: &str, taken: &[PathBuf]) -> PathBuf {
     let original = Path::new(name);
     let stem = original
         .file_stem()
@@ -348,7 +414,7 @@ fn unique_path(dir: &Path, name: &str, tasks: &[DownloadTask]) -> PathBuf {
 
     let mut candidate = dir.join(name);
     let mut suffix = 1;
-    while tasks.iter().any(|task| task.path == candidate) {
+    while taken.contains(&candidate) {
         candidate = dir.join(format!("{stem}-{suffix}{ext}"));
         suffix += 1;
     }

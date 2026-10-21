@@ -5,3 +5,13 @@ members = [
 ]
 
 resolver = "2"
+
+# 这台机器上的 MSVC（VS 生成工具 2026 / MSVC 14.51）在给 C 代码加 `/Z7` 时会偶发
+# `cl: 命令行 error D8050 :无法执行 c1.dll: 未能将命令行放入调试记录中`，
+# 直接把 ring（reqwest 的 rustls 后端）的 C 编译打断，表现为 `cargo check` 失败。
+# 那个"调试记录"只有开了 `/Z7` 才会写，所以这里只把 **ring 这个包**的 debuginfo 关掉：
+# cc-rs 不再给它传 `/Z7`，cargo check / build 就不再碰这条会炸的路径。
+# 代价仅仅是 ring 的 C 部分没有调试符号（我们本来也不会去调它），
+# Rust 代码的 debuginfo 一点没少。
+[profile.dev.package.ring]
+debug = 0
