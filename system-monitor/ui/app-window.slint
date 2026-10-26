@@ -1,0 +1,53 @@
+export component AppWindow inherits Window {
+    title: "System Monitor";
+    preferred-width: 420px;
+    preferred-height: 220px;
+
+    in property <string> cpu_text: "0 %";
+    in property <string> memory_text: "0 %";
+    in property <string> network_text: "0 kb/s";
+
+    VerticalLayout {
+        padding: 20px;
+        spacing: 12px;
+
+        Text {
+            text: "System Monitor";
+            font-size: 24px;
+            horizontal-alignment: center;
+        }
+
+        HorizontalLayout {
+            Text {
+                text: "CPU";
+            }
+
+            Text {
+                text: cpu_text;
+                horizontal-alignment: right;
+            }
+        }
+
+        HorizontalLayout {
+            Text {
+                text: "Memory";
+            }
+
+            Text {
+                text: memory_text;
+                horizontal-alignment: right;
+            }
+        }
+
+        HorizontalLayout {
+            Text {
+                text: "Network";
+            }
+
+            Text {
+                text: network_text;
+                horizontal-alignment: right;
+            }
+        }
+    }
+}
