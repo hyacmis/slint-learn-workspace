@@ -1,0 +1,80 @@
+export component AppWindow inherits Window {
+    title: "System Monitor";
+    preferred-width: 480px;
+    preferred-height: 240px;
+
+    in property <string> cpu_text: "0 %";
+    in property <string> memory_text: "0 %";
+    in property <string> network_received_text: "0.0 B/s";
+    in property <string> network_transmitted_text: "0.0 B/s";
+
+    VerticalLayout {
+        padding: 20px;
+        spacing: 12px;
+
+        Text {
+            text: "System Monitor";
+            font-size: 24px;
+            horizontal-alignment: center;
+        }
+
+        HorizontalLayout {
+            Text {
+                text: "CPU";
+            }
+
+            Text {
+                text: cpu_text;
+                horizontal-alignment: right;
+            }
+        }
+
+        HorizontalLayout {
+            Text {
+                text: "Memory";
+            }
+
+            Text {
+                text: memory_text;
+                horizontal-alignment: right;
+            }
+        }
+
+        HorizontalLayout {
+            Text {
+                text: "Network";
+                vertical-alignment: TextVerticalAlignment.center;
+            }
+
+            VerticalLayout {
+                HorizontalLayout {
+                    spacing: 4px;
+                    Text {
+                        text: "Down:";
+                        width: 30px;
+                    }
+
+                    Text {
+                        text: network_received_text;
+                        width: 84px;
+                        horizontal-alignment: right;
+                    }
+                }
+
+                HorizontalLayout {
+                    spacing: 4px;
+                    Text {
+                        text: "Up:";
+                        width: 30px;
+                    }
+
+                    Text {
+                        text: network_transmitted_text;
+                        width: 84px;
+                        horizontal-alignment: right;
+                    }
+                }
+            }
+        }
+    }
+}
