@@ -3,6 +3,7 @@ members = [
     "pomodoro-timer",
     "download-manager",
     "system-monitor",
+    "text-playground",
 ]
 
 resolver = "2"

@@ -1,0 +1,42 @@
+export enum TextOperation {
+    uppercase,
+    lowercase,
+    trim,
+    reverse,
+    remove-whitespace,
+}
+
+export enum MarkdownOperation {
+    heading-one,
+    heading-two,
+    bold,
+    italic,
+    inline-code,
+    link,
+    unordered-list,
+    ordered-list,
+    quote,
+    code-block,
+}
+
+export enum PageView {
+    text-tools,
+    markdown-tools,
+}
+
+export struct TextMetrics {
+    character-count: int,
+    word-count: int,
+    line-count: int,
+    byte-count: int,
+}
+
+export struct TextActionResult {
+    text: string,
+    message: string,
+}
+
+export struct MarkdownActionResult {
+    template: string,
+    message: string,
+}
