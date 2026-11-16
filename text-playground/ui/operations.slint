@@ -40,3 +40,17 @@ export struct MarkdownActionResult {
     template: string,
     message: string,
 }
+
+export struct MarkdownBlock {
+    text: styled-text,
+    font-size: length,
+    font-family: string,
+    color: color,
+    indent: length,
+}
+
+export struct MarkdownPreview {
+    blocks: [MarkdownBlock],
+    message: string,
+    parsed: bool,
+}
