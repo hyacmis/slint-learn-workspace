@@ -1,11 +1,12 @@
 export component AppWindow inherits Window {
     title: "System Monitor";
-    preferred-width: 420px;
-    preferred-height: 220px;
+    preferred-width: 480px;
+    preferred-height: 240px;
 
     in property <string> cpu_text: "0 %";
     in property <string> memory_text: "0 %";
-    in property <string> network_text: "0 kb/s";
+    in property <string> network_received_text: "0.0 B/s";
+    in property <string> network_transmitted_text: "0.0 B/s";
 
     VerticalLayout {
         padding: 20px;
@@ -42,11 +43,37 @@ export component AppWindow inherits Window {
         HorizontalLayout {
             Text {
                 text: "Network";
+                vertical-alignment: TextVerticalAlignment.center;
             }
 
-            Text {
-                text: network_text;
-                horizontal-alignment: right;
+            VerticalLayout {
+                HorizontalLayout {
+                    spacing: 4px;
+                    Text {
+                        text: "Down:";
+                        width: 30px;
+                    }
+
+                    Text {
+                        text: network_received_text;
+                        width: 84px;
+                        horizontal-alignment: right;
+                    }
+                }
+
+                HorizontalLayout {
+                    spacing: 4px;
+                    Text {
+                        text: "Up:";
+                        width: 30px;
+                    }
+
+                    Text {
+                        text: network_transmitted_text;
+                        width: 84px;
+                        horizontal-alignment: right;
+                    }
+                }
             }
         }
     }
