@@ -4762,6 +4762,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "text-playground"
+version = "0.1.0"
+dependencies = [
+ "slint",
+ "slint-build",
+]
+
+[[package]]
 name = "text-size"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

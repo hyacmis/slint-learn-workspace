@@ -1,0 +1,83 @@
+import { Button } from "std-widgets.slint";
+import {
+    MarkdownActionResult,
+    MarkdownOperation,
+    MarkdownPreview,
+    PageView,
+    TextActionResult,
+    TextMetrics,
+    TextOperation,
+} from "operations.slint";
+import { MarkdownPage } from "markdown-page.slint";
+import { TextToolsPage } from "text-tools-page.slint";
+
+export { MarkdownOperation, PageView, TextOperation } from "operations.slint";
+
+export component AppWindow inherits Window {
+    title: "文本操作练习场";
+    preferred-width: 760px;
+    preferred-height: 700px;
+    min-width: 600px;
+    min-height: 560px;
+
+    private property <PageView> active-page: PageView.text-tools;
+
+    callback text-changed(string) -> TextMetrics;
+    callback transform-clicked(TextOperation, string) -> TextActionResult;
+    callback replace-clicked(string, string, string) -> TextActionResult;
+    callback markdown-changed(string) -> MarkdownPreview;
+    callback markdown-operation-clicked(MarkdownOperation) -> MarkdownActionResult;
+
+    VerticalLayout {
+        padding: 20px;
+        spacing: 12px;
+
+        HorizontalLayout {
+            alignment: center;
+            spacing: 8px;
+            Button {
+                text: "文本操作";
+                clicked => { active-page = PageView.text-tools; }
+            }
+            Button {
+                text: "Markdown 编辑器";
+                clicked => { active-page = PageView.markdown-tools; }
+            }
+        }
+
+        Rectangle {
+            vertical-stretch: 1;
+
+            text-tools-page := TextToolsPage {
+                width: 100%;
+                height: 100%;
+                visible: active-page == PageView.text-tools;
+
+                text-changed(text) => { root.text-changed(text); }
+                transform-clicked(operation, text) => {
+                    root.transform-clicked(operation, text);
+                }
+                replace-clicked(find, replacement, text) => {
+                    root.replace-clicked(find, replacement, text);
+                }
+            }
+
+            markdown-page := MarkdownPage {
+                width: 100%;
+                height: 100%;
+                visible: active-page == PageView.markdown-tools;
+
+                markdown-changed(text) => { root.markdown-changed(text); }
+                operation-clicked(operation) => {
+                    root.markdown-operation-clicked(operation);
+                }
+            }
+
+        }
+    }
+
+    public function initialize() {
+        text-tools-page.refresh-stats();
+        markdown-page.refresh-preview();
+    }
+}

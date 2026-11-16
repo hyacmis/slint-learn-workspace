@@ -1,0 +1,185 @@
+import { Button, ListView, TextEdit } from "std-widgets.slint";
+import {
+    MarkdownActionResult,
+    MarkdownBlock,
+    MarkdownOperation,
+    MarkdownPreview,
+} from "operations.slint";
+
+export component MarkdownPage inherits Rectangle {
+    private property <string> markdown-text: "# Markdown 编辑器\n\n使用上方工具插入常见 **Markdown** 格式，右侧会实时渲染。\n\n- 支持 **粗体**、*斜体*、\u{0060}行内代码\u{0060}\n- 支持列表、引用和代码块\n\n> 引用内容会用灰色文字近似显示。";
+    private property <string> message: "点击格式按钮，将模板添加到文档末尾";
+    private property <[MarkdownBlock]> preview-blocks;
+    private property <bool> parsed: true;
+
+    callback markdown-changed(string) -> MarkdownPreview;
+    callback operation-clicked(MarkdownOperation) -> MarkdownActionResult;
+
+    VerticalLayout {
+        width: 100%;
+        height: 100%;
+        spacing: 12px;
+
+        Text {
+            text: "Markdown 编辑器";
+            font-size: 26px;
+            horizontal-alignment: center;
+        }
+
+        Text {
+            text: "编辑 Markdown 源码，选择格式按钮将模板添加到文档末尾。";
+            color: #666666;
+            horizontal-alignment: center;
+        }
+
+        HorizontalLayout {
+            spacing: 8px;
+            Button {
+                text: "一级标题";
+                clicked => { root.insert-template(MarkdownOperation.heading-one); }
+                Tooltip {
+                    text: @markdown("Slint 不支持标题语法：预览会用加粗和放大字号近似显示。");
+                }
+            }
+            Button {
+                text: "二级标题";
+                clicked => { root.insert-template(MarkdownOperation.heading-two); }
+                Tooltip {
+                    text: @markdown("Slint 不支持标题语法：预览会用加粗和放大字号近似显示。");
+                }
+            }
+            Button {
+                text: "粗体";
+                clicked => { root.insert-template(MarkdownOperation.bold); }
+            }
+            Button {
+                text: "斜体";
+                clicked => { root.insert-template(MarkdownOperation.italic); }
+                Tooltip {
+                    text: @markdown("斜体由 StyledText 原生支持；中文字符是否倾斜取决于字体是否提供对应字形。");
+                }
+            }
+            Button {
+                text: "行内代码";
+                clicked => { root.insert-template(MarkdownOperation.inline-code); }
+            }
+        }
+
+        HorizontalLayout {
+            spacing: 8px;
+            Button {
+                text: "链接";
+                clicked => { root.insert-template(MarkdownOperation.link); }
+            }
+            Button {
+                text: "无序列表";
+                clicked => { root.insert-template(MarkdownOperation.unordered-list); }
+            }
+            Button {
+                text: "有序列表";
+                clicked => { root.insert-template(MarkdownOperation.ordered-list); }
+            }
+            Button {
+                text: "引用";
+                clicked => { root.insert-template(MarkdownOperation.quote); }
+                Tooltip {
+                    text: @markdown("Slint 不支持引用块：预览会用灰色文字和竖线前缀近似显示。");
+                }
+            }
+            Button {
+                text: "代码块";
+                clicked => { root.insert-template(MarkdownOperation.code-block); }
+                Tooltip {
+                    text: @markdown("Slint 不支持代码块：预览会用等宽字体原样显示代码内容。");
+                }
+            }
+        }
+
+        HorizontalLayout {
+            vertical-stretch: 1;
+            spacing: 12px;
+
+            VerticalLayout {
+                horizontal-stretch: 1;
+                spacing: 6px;
+
+                Text {
+                    text: "Markdown 源码";
+                    font-size: 16px;
+                }
+
+                TextEdit {
+                    vertical-stretch: 1;
+                    placeholder-text: "在这里编写 Markdown...";
+                    text <=> markdown-text;
+                    edited(text) => { root.refresh-preview(); }
+                }
+            }
+
+            VerticalLayout {
+                horizontal-stretch: 1;
+                spacing: 6px;
+
+                Text {
+                    text: "渲染预览";
+                    font-size: 16px;
+                }
+
+                ListView {
+                    vertical-stretch: 1;
+
+                    for block in preview-blocks : HorizontalLayout {
+                        padding-left: 12px + block.indent;
+                        padding-right: 12px;
+                        padding-top: 4px;
+                        padding-bottom: 4px;
+
+                        StyledText {
+                            horizontal-stretch: 1;
+                            text: block.text;
+                            default-font-size: block.font-size;
+                            default-font-family: block.font-family;
+                            default-color: block.color;
+                        }
+                    }
+                }
+            }
+        }
+
+        HorizontalLayout {
+            spacing: 8px;
+            Text {
+                text: message;
+                color: parsed ? #555555 : #b3261e;
+                wrap: word-wrap;
+                vertical-alignment: center;
+                horizontal-stretch: 1;
+            }
+            Button {
+                text: "清空文档";
+                clicked => {
+                    markdown-text = "";
+                    root.refresh-preview();
+                    message = "Markdown 文档已清空";
+                }
+            }
+        }
+    }
+
+    function insert-template(operation: MarkdownOperation) {
+        let result = root.operation-clicked(operation);
+        if markdown-text != "" && !markdown-text.ends-with("\n") {
+            markdown-text += "\n";
+        }
+        markdown-text += result.template;
+        root.refresh-preview();
+        message = result.message + " · " + message;
+    }
+
+    public function refresh-preview() {
+        let result = root.markdown-changed(markdown-text);
+        preview-blocks = result.blocks;
+        message = result.message;
+        parsed = result.parsed;
+    }
+}

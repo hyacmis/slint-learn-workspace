@@ -1,0 +1,156 @@
+import { Button, LineEdit, TextEdit } from "std-widgets.slint";
+import { TextActionResult, TextMetrics, TextOperation } from "operations.slint";
+
+export component TextToolsPage inherits Rectangle {
+    private property <string> source-text: "欢迎来到文本操作练习场！\n\n试着编辑这段文字，查看实时统计，并使用下方按钮进行文本转换。";
+    private property <string> find-text;
+    private property <string> replacement-text;
+    private property <TextMetrics> metrics: {
+        character-count: 0,
+        word-count: 0,
+        line-count: 0,
+        byte-count: 0,
+    };
+    private property <string> message: "编辑文本或选择一个操作";
+
+    callback text-changed(string) -> TextMetrics;
+    callback transform-clicked(TextOperation, string) -> TextActionResult;
+    callback replace-clicked(string, string, string) -> TextActionResult;
+
+    function update-stats(text: string) {
+        metrics = root.text-changed(text);
+    }
+
+    VerticalLayout {
+        width: 100%;
+        height: 100%;
+        spacing: 12px;
+
+        Text {
+            text: "文本操作练习场";
+            font-size: 26px;
+            horizontal-alignment: center;
+        }
+
+        Text {
+            text: "输入一段文字，实时查看统计，并尝试常见文本处理操作。";
+            color: #666666;
+            horizontal-alignment: center;
+        }
+
+        HorizontalLayout {
+            spacing: 12px;
+            Text {
+                text: "字符数  " + metrics.character-count;
+                horizontal-stretch: 1;
+            }
+            Text {
+                text: "单词数  " + metrics.word-count;
+                horizontal-stretch: 1;
+            }
+            Text {
+                text: "行数  " + metrics.line-count;
+                horizontal-stretch: 1;
+            }
+            Text {
+                text: "字节数  " + metrics.byte-count;
+                horizontal-stretch: 1;
+            }
+        }
+
+        TextEdit {
+            vertical-stretch: 1;
+            placeholder-text: "在这里输入或粘贴文本...";
+            text <=> source-text;
+            edited(text) => { root.update-stats(text); }
+        }
+
+        Text {
+            text: "文本转换";
+            font-size: 18px;
+        }
+
+        HorizontalLayout {
+            spacing: 8px;
+            Button {
+                text: "转大写";
+                clicked => { root.apply-transform(TextOperation.uppercase); }
+            }
+            Button {
+                text: "转小写";
+                clicked => { root.apply-transform(TextOperation.lowercase); }
+            }
+            Button {
+                text: "去首尾空白";
+                clicked => { root.apply-transform(TextOperation.trim); }
+            }
+            Button {
+                text: "反转";
+                clicked => { root.apply-transform(TextOperation.reverse); }
+            }
+            Button {
+                text: "删除空白";
+                clicked => { root.apply-transform(TextOperation.remove-whitespace); }
+            }
+        }
+
+        Text {
+            text: "查找与替换";
+            font-size: 18px;
+        }
+
+        HorizontalLayout {
+            spacing: 8px;
+            LineEdit {
+                horizontal-stretch: 1;
+                placeholder-text: "查找内容";
+                text <=> find-text;
+            }
+            LineEdit {
+                horizontal-stretch: 1;
+                placeholder-text: "替换为";
+                text <=> replacement-text;
+            }
+            Button {
+                text: "替换全部";
+                clicked => { root.apply-replacement(); }
+            }
+        }
+
+        HorizontalLayout {
+            spacing: 8px;
+            Text {
+                text: message;
+                color: #555555;
+                vertical-alignment: center;
+                horizontal-stretch: 1;
+            }
+            Button {
+                text: "清空文本";
+                clicked => {
+                    source-text = "";
+                    root.update-stats("");
+                    message = "文本已清空";
+                }
+            }
+        }
+    }
+
+    function apply-transform(operation: TextOperation) {
+        let result = root.transform-clicked(operation, source-text);
+        source-text = result.text;
+        root.update-stats(source-text);
+        message = result.message;
+    }
+
+    function apply-replacement() {
+        let result = root.replace-clicked(find-text, replacement-text, source-text);
+        source-text = result.text;
+        root.update-stats(source-text);
+        message = result.message;
+    }
+
+    public function refresh-stats() {
+        root.update-stats(source-text);
+    }
+}
